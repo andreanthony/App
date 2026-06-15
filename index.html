@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Quiz Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f0f13;
+      --surface: #1a1a22;
+      --border: #2e2e3a;
+      --accent: #7c6aff;
+      --accent-glow: #7c6aff33;
+      --text: #e8e8f0;
+      --muted: #7a7a95;
+      --correct: #22c55e;
+      --wrong: #ef4444;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px 80px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    header h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #fff 40%, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      color: var(--muted);
+      margin-top: 8px;
+      font-size: 1rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      width: 100%;
+      max-width: 680px;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input, select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      padding: 12px 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    button#generate-btn {
+      width: 100%;
+      margin-top: 8px;
+      padding: 14px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    button#generate-btn:hover { opacity: 0.9; }
+    button#generate-btn:active { transform: scale(0.98); }
+    button#generate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    #status {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 16px;
+      min-height: 20px;
+    }
+
+    #quiz-section { width: 100%; max-width: 680px; margin-top: 32px; }
+
+    #quiz-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    .question-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+
+    .question-num {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .question-text {
+      font-size: 1.05rem;
+      font-weight: 500;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .options { display: flex; flex-direction: column; gap: 8px; }
+
+    .option {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: border-color 0.15s, background 0.15s;
+      text-align: left;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+    }
+
+    .option:hover:not(:disabled) {
+      border-color: var(--accent);
+      background: var(--accent-glow);
+    }
+
+    .option.correct {
+      border-color: var(--correct);
+      background: #22c55e18;
+      color: var(--correct);
+    }
+
+    .option.wrong {
+      border-color: var(--wrong);
+      background: #ef444418;
+      color: var(--wrong);
+    }
+
+    .option:disabled { cursor: default; }
+
+    .explanation {
+      margin-top: 12px;
+      padding: 12px 14px;
+      background: var(--bg);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 6px 6px 0;
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.5;
+      display: none;
+    }
+
+    #score-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-top: 8px;
+      display: none;
+      text-align: center;
+    }
+
+    #score-bar .score-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    #score-bar .score-label {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+
+    button#reset-btn {
+      margin-top: 16px;
+      padding: 10px 24px;
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button#reset-btn:hover { background: var(--accent-glow); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>AI Quiz Generator</h1>
+    <p>Enter any topic and get an instant quiz powered by Claude.</p>
+  </header>
+
+  <div class="card">
+    <div class="form-grid">
+      <div>
+        <label for="topic">Topic</label>
+        <input type="text" id="topic" placeholder="e.g. The Roman Empire, Python basics, Jazz history…" />
+      </div>
+      <div class="row">
+        <div>
+          <label for="num-questions">Questions</label>
+          <select id="num-questions">
+            <option value="3">3</option>
+            <option value="5" selected>5</option>
+            <option value="8">8</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+        <div>
+          <label for="difficulty">Difficulty</label>
+          <select id="difficulty">
+            <option value="easy">Easy</option>
+            <option value="medium" selected>Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+      </div>
+      <button id="generate-btn">Generate Quiz</button>
+    </div>
+    <div id="status"></div>
+  </div>
+
+  <div id="quiz-section">
+    <div id="quiz-title"></div>
+    <div id="questions-container"></div>
+    <div id="score-bar">
+      <div class="score-num" id="score-num"></div>
+      <div class="score-label">Your score</div>
+      <button id="reset-btn">Try another topic</button>
+    </div>
+  </div>
+
+  <script>
+    const generateBtn = document.getElementById("generate-btn");
+    const status = document.getElementById("status");
+    const quizTitle = document.getElementById("quiz-title");
+    const container = document.getElementById("questions-container");
+    const scoreBar = document.getElementById("score-bar");
+    const scoreNum = document.getElementById("score-num");
+    const resetBtn = document.getElementById("reset-btn");
+
+    let answered = 0;
+    let correct = 0;
+    let totalQuestions = 0;
+
+    generateBtn.addEventListener("click", async () => {
+      const topic = document.getElementById("topic").value.trim();
+      const numQ = document.getElementById("num-questions").value;
+      const diff = document.getElementById("difficulty").value;
+
+      if (!topic) { status.textContent = "Please enter a topic first."; return; }
+
+      generateBtn.disabled = true;
+      status.textContent = "Generating your quiz…";
+      container.innerHTML = "";
+      quizTitle.textContent = "";
+      scoreBar.style.display = "none";
+      answered = 0; correct = 0;
+
+      try {
+        const res = await fetch("/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ topic, num_questions: numQ, difficulty: diff })
+        });
+        const quiz = await res.json();
+        if (quiz.error) { status.textContent = quiz.error; return; }
+
+        totalQuestions = quiz.questions.length;
+        quizTitle.textContent = quiz.title;
+        status.textContent = "";
+
+        quiz.questions.forEach((q, i) => {
+          const card = document.createElement("div");
+          card.className = "question-card";
+          card.innerHTML = `
+            <div class="question-num">Question ${i + 1}</div>
+            <div class="question-text">${q.question}</div>
+            <div class="options">
+              ${q.options.map(opt => `<button class="option">${opt}</button>`).join("")}
+            </div>
+            <div class="explanation">${q.explanation}</div>
+          `;
+
+          const buttons = card.querySelectorAll(".option");
+          const explanation = card.querySelector(".explanation");
+
+          buttons.forEach(btn => {
+            btn.addEventListener("click", () => {
+              buttons.forEach(b => b.disabled = true);
+              const chosen = btn.textContent;
+              const isCorrect = chosen === q.answer;
+
+              btn.classList.add(isCorrect ? "correct" : "wrong");
+              if (!isCorrect) {
+                buttons.forEach(b => {
+                  if (b.textContent === q.answer) b.classList.add("correct");
+                });
+              }
+
+              explanation.style.display = "block";
+              answered++;
+              if (isCorrect) correct++;
+
+              if (answered === totalQuestions) {
+                scoreNum.textContent = `${correct} / ${totalQuestions}`;
+                scoreBar.style.display = "block";
+              }
+            });
+          });
+
+          container.appendChild(card);
+        });
+
+      } catch (e) {
+        status.textContent = "Something went wrong. Check your API key and try again.";
+      } finally {
+        generateBtn.disabled = false;
+      }
+    });
+
+    resetBtn.addEventListener("click", () => {
+      container.innerHTML = "";
+      quizTitle.textContent = "";
+      scoreBar.style.display = "none";
+      document.getElementById("topic").value = "";
+      status.textContent = "";
+      answered = 0; correct = 0;
+    });
+  </script>
+</body>
+</html>
